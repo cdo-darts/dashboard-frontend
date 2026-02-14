@@ -76,10 +76,11 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import ConnectionStatus from '@/components/ConnectionStatus.vue'
   import GlassCard from '@/components/GlassCard.vue'
   import { useToast } from '@/composables/useToast'
+  import { useConnectivityGate } from '@/composables/useConnectivityGate'
   import { getHealth, getSystemStatus } from '@/services/api'
 
   const { error: showError } = useToast()
@@ -92,6 +93,7 @@
   const lastUpdated = ref('')
   const rawError = ref(null)
   let intervalId = null
+  const { pollingEnabled } = useConnectivityGate()
   const errorDetails = computed(() => {
     if (!rawError.value) return []
     const details = []
@@ -197,13 +199,32 @@
     }
   }
 
-  onMounted(async () => {
-    await fetchHealth()
-    await fetchData()
+  function stopPolling () {
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+  }
+
+  function startPolling () {
+    if (!pollingEnabled.value || intervalId) return
+    fetchHealth()
+    fetchData()
     intervalId = setInterval(fetchData, 5000)
+  }
+
+  watch(pollingEnabled, enabled => {
+    if (enabled) startPolling()
+    else stopPolling()
+  })
+
+  onMounted(() => {
+    if (pollingEnabled.value) {
+      startPolling()
+    }
   })
 
   onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId)
+    stopPolling()
   })
 </script>

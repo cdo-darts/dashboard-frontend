@@ -1,7 +1,13 @@
 <template>
   <v-app>
+    <div v-if="isInitializing" class="app-initializing">
+      <v-progress-circular color="primary" indeterminate size="64" />
+      <p class="text-body-1 mt-4">Initialising...</p>
+    </div>
+
+    <template v-else>
     <v-app-bar
-      v-if="!mobile"
+      v-if="!mobile && !isWifiSetupRoute"
       app
       class="glass-card-elevated"
       elevation="0"
@@ -37,7 +43,7 @@
     </v-app-bar>
 
     <v-app-bar
-      v-else
+      v-else-if="!isWifiSetupRoute"
       app
       class="glass-card-elevated"
       elevation="0"
@@ -54,12 +60,12 @@
     </v-app-bar>
 
     <v-main>
-      <system-status-bar />
+      <system-status-bar v-if="!isWifiSetupRoute" />
       <router-view />
     </v-main>
 
     <v-bottom-navigation
-      v-if="mobile"
+      v-if="mobile && !isWifiSetupRoute"
       v-model="currentTab"
       app
       class="glass-card-elevated"
@@ -88,13 +94,15 @@
     </v-bottom-navigation>
 
     <toast-container />
+    </template>
   </v-app>
 </template>
 
 <script setup>
-  import { onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
+  import { initializeConnectivity, useConnectivityGate, WIFI_SETUP_ROUTE } from '@/composables/useConnectivityGate'
   import SystemStatusBar from '@/components/SystemStatusBar.vue'
   import ToastContainer from '@/components/ToastContainer.vue'
 
@@ -103,6 +111,9 @@
   const { mobile } = useDisplay()
 
   const currentTab = ref('/')
+  const { isInitializing } = useConnectivityGate()
+
+  const isWifiSetupRoute = computed(() => route.path.startsWith(WIFI_SETUP_ROUTE))
 
   function getNavigationTab (path) {
     if (path.startsWith('/apps')) return '/apps'
@@ -127,10 +138,32 @@
 
   onMounted(() => {
     currentTab.value = getNavigationTab(route.path)
+
+    initializeConnectivity().then((connected) => {
+      if (connected) {
+        if (route.path === WIFI_SETUP_ROUTE) {
+          router.replace('/')
+        }
+        return
+      }
+
+      if (route.path !== WIFI_SETUP_ROUTE) {
+        router.replace(WIFI_SETUP_ROUTE)
+      }
+    })
   })
 </script>
 
 <style>
+.app-initializing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .v-main {
   padding-bottom: calc(var(--v-layout-bottom) + env(safe-area-inset-bottom)) !important;
 }

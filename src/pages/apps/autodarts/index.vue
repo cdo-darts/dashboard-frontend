@@ -204,6 +204,7 @@
   import GlassCard from '@/components/GlassCard.vue'
   import StatusBadge from '@/components/StatusBadge.vue'
   import { useToast } from '@/composables/useToast'
+  import { useConnectivityGate } from '@/composables/useConnectivityGate'
   import {
     checkAutodartsUpdate,
     getAutodartsLogs,
@@ -226,6 +227,7 @@
   const installVersion = ref('')
   const enableAutostart = ref(true)
   const deviceIp = ref('')
+  const { pollingEnabled } = useConnectivityGate()
   const boardManagerState = ref(null)
   let boardManagerIntervalId = null
 
@@ -320,7 +322,7 @@
   }
 
   function startBoardManagerPolling () {
-    if (boardManagerIntervalId) return
+    if (!pollingEnabled.value || boardManagerIntervalId) return
     fetchBoardManagerState()
     boardManagerIntervalId = setInterval(fetchBoardManagerState, 1000)
   }
@@ -333,7 +335,7 @@
   }
 
   function syncBoardManagerPolling () {
-    if (status.value?.installed) startBoardManagerPolling()
+    if (status.value?.installed && pollingEnabled.value) startBoardManagerPolling()
     else stopBoardManagerPolling()
   }
 
@@ -422,6 +424,10 @@
 
   watch(logLines, () => {
     if (status.value?.installed) fetchLogs()
+  })
+
+  watch(pollingEnabled, () => {
+    syncBoardManagerPolling()
   })
 
   onMounted(async () => {

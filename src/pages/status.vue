@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import CpuCard from '@/components/cards/CPUCard.vue'
   import DiskCard from '@/components/cards/DiskCard.vue'
@@ -89,6 +89,7 @@
   import ConnectionStatus from '@/components/ConnectionStatus.vue'
   import GlassCard from '@/components/GlassCard.vue'
   import { useToast } from '@/composables/useToast'
+  import { useConnectivityGate } from '@/composables/useConnectivityGate'
   import { getHealth, getSystemStatus, getWifi } from '@/services/api'
 
   const router = useRouter()
@@ -104,6 +105,7 @@
   let intervalId = null
   let wifiIntervalId = null
   const wifiInfo = ref(null)
+  const { pollingEnabled } = useConnectivityGate()
 
   const errorDetails = computed(() => {
     if (!rawError.value) return []
@@ -176,15 +178,34 @@
     }
   }
 
-  onMounted(async () => {
-    await fetchHealth()
-    await fetchData()
-    intervalId = setInterval(fetchData, 5000)
+  function stopPolling () {
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+    stopWifiPolling()
+  }
+
+  function startPolling () {
+    if (!pollingEnabled.value || intervalId) return
+    fetchHealth()
+    fetchData()
     startWifiPolling()
+    intervalId = setInterval(fetchData, 5000)
+  }
+
+  watch(pollingEnabled, enabled => {
+    if (enabled) startPolling()
+    else stopPolling()
+  })
+
+  onMounted(() => {
+    if (pollingEnabled.value) {
+      startPolling()
+    }
   })
 
   onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId)
-    stopWifiPolling()
+    stopPolling()
   })
 </script>

@@ -19,13 +19,15 @@
 </template>
 
 <script setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { useConnectivityGate } from '@/composables/useConnectivityGate'
   import { getSystemStatus } from '@/services/api'
 
   const wifi = ref(null)
   const network = ref(null)
   const timeLabel = ref('')
   let intervalId = null
+  const { pollingEnabled } = useConnectivityGate()
 
   const isWifiConnected = computed(() => {
     if (wifi.value?.connected) return true
@@ -120,13 +122,32 @@
     })
   }
 
-  onMounted(async () => {
-    await refreshStatus()
+  function stopPolling () {
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+  }
+
+  function startPolling () {
+    if (!pollingEnabled.value || intervalId) return
+    refreshStatus()
     intervalId = setInterval(refreshStatus, 5000)
+  }
+
+  watch(pollingEnabled, enabled => {
+    if (enabled) startPolling()
+    else stopPolling()
+  })
+
+  onMounted(() => {
+    if (pollingEnabled.value) {
+      startPolling()
+    }
   })
 
   onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId)
+    stopPolling()
   })
 </script>
 
