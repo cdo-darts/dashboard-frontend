@@ -2,7 +2,7 @@
   "name": "vertex-gui",
   "private": true,
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.2.2",
   "scripts": {
     "dev": "vite",
     "dev:tunnel": "ssh -L 5001:localhost:5001 cdo-vertex@cdo-vertex.local",
