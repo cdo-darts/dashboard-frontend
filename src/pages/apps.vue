@@ -99,6 +99,7 @@
   function isAutodartsUnavailableError (error) {
     const message = String(error?.message || '').toLowerCase()
     return error?.status === 404
+      || error?.status === 502
       || error?.status === 503
       || message.includes('not running')
       || message.includes('not installed')

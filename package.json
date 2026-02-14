@@ -5,7 +5,7 @@
   "version": "0.2.3",
   "scripts": {
     "dev": "vite",
-    "dev:tunnel": "ssh -L 5001:localhost:5001 cdo-vertex@cdo-vertex.local",
+    "dev:tunnel": "ssh -L 8080:localhost:80 cdo-vertex@cdo-vertex.local",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix"
