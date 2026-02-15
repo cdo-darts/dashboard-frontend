@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import readline from 'node:readline'
 
@@ -55,6 +55,12 @@ function ask(question) {
   })
 }
 
+function getPackageVersion() {
+  const raw = readFileSync('package.json', 'utf-8')
+  const data = JSON.parse(raw)
+  return data.version || ''
+}
+
 async function main() {
   const status = runCapture(gitCmd, ['status', '--porcelain'])
   if (!status) {
@@ -74,6 +80,20 @@ async function main() {
 
   rl.close()
 
+  if (versionInput) {
+    console.log(`Bumping version to ${versionInput}...`)
+    runNpm(['version', versionInput, '--no-git-tag-version'])
+  } else {
+    console.log('Bumping version (patch)...')
+    runNpm(['version', 'patch', '--no-git-tag-version'])
+  }
+
+  const newVersion = getPackageVersion()
+  if (!newVersion) {
+    console.log('Unable to read version from package.json.')
+    process.exit(1)
+  }
+
   console.log('Starting build...')
   runNpm(['run', 'build'])
   const distPath = path.resolve('dist')
@@ -89,13 +109,8 @@ async function main() {
   console.log('Committing changes...')
   run(gitCmd, ['commit', '-m', message])
 
-  if (versionInput) {
-    console.log(`Bumping version to ${versionInput}...`)
-    runNpm(['version', versionInput])
-  } else {
-    console.log('Bumping version (patch)...')
-    runNpm(['version', 'patch'])
-  }
+  console.log(`Tagging release v${newVersion}...`)
+  run(gitCmd, ['tag', `v${newVersion}`])
 
   console.log('Pushing commit and tags...')
   run(gitCmd, ['push', 'origin', 'HEAD'])
