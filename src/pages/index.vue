@@ -63,7 +63,7 @@
             <div class="text-overline text-secondary">Device summary</div>
             <div class="text-h5 text-primary-high font-weight-bold">{{ systemData?.hostname?.hostname || 'CDO Vertex' }}</div>
             <div class="text-body-2 text-secondary">
-              Uptime {{ formatUptime(systemData?.uptime?.uptime_seconds || 0) }} · API {{ apiVersion || 'n/a' }} · Dashboard v{{ dashboardVersion }}
+              Uptime {{ formatUptime(systemData?.uptime?.uptime_seconds || 0) }} · Dashboard v{{ dashboardVersion }}
             </div>
           </div>
           <div class="d-flex ga-2 flex-wrap">
@@ -105,7 +105,7 @@
   import ConnectionStatus from '@/components/ConnectionStatus.vue'
   import GlassCard from '@/components/GlassCard.vue'
   import { useToast } from '@/composables/useToast'
-  import { applyUpdates, getHealth, getSystemStatus, getUpdates } from '@/services/api'
+  import { applyUpdates, getSystemStatus, getUpdates } from '@/services/api'
   import packageJson from '../../package.json'
 
   const { success, error: showError } = useToast()
@@ -116,7 +116,6 @@
   const error = ref(null)
   const isConnected = ref(true)
   const systemData = ref(null)
-  const apiVersion = ref('')
   const lastUpdated = ref('')
   const rawError = ref(null)
   const updateData = ref(null)
@@ -223,15 +222,6 @@
     }
   }
 
-  async function fetchHealth () {
-    try {
-      const response = await getHealth()
-      apiVersion.value = response.data?.version || ''
-    } catch {
-      apiVersion.value = ''
-    }
-  }
-
   async function fetchUpdates () {
     try {
       const response = await getUpdates()
@@ -262,7 +252,6 @@
   }
 
   onMounted(async () => {
-    await fetchHealth()
     await fetchData()
     await fetchUpdates()
     intervalId = setInterval(() => {
