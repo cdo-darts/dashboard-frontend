@@ -8,7 +8,8 @@
     "dev:tunnel": "ssh -L 8080:localhost:80 cdo-vertex@cdo-vertex.local",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "update": "node scripts/update.js"
   },
   "dependencies": {
     "@fontsource/roboto": "5.2.7",
