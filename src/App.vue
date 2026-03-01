@@ -9,14 +9,18 @@
     >
       <template #prepend>
         <div class="d-flex align-center ml-4">
-          <v-icon class="mr-3" color="primary" icon="mdi-raspberry-pi" size="32" />
+          <v-img
+            :src="vertexLogo"
+            alt="Vertex logo"
+            class="mr-3 app-logo"
+            height="32"
+            width="32"
+          />
           <div>
             <div class="text-h6 text-primary-high font-weight-bold">
               CDO Vertex
             </div>
-            <div class="text-caption text-secondary">
-              Device Control Center
-            </div>
+            <div class="text-caption text-secondary">Device Control Center</div>
           </div>
         </div>
       </template>
@@ -28,10 +32,30 @@
           class="mr-4"
           color="primary"
         >
-          <v-tab prepend-icon="mdi-view-dashboard" value="/" @click="navigate('/')">Dashboard</v-tab>
-          <v-tab prepend-icon="mdi-chart-box" value="/status" @click="navigate('/status')">Status</v-tab>
-          <v-tab prepend-icon="mdi-apps" value="/apps" @click="navigate('/apps')">Apps</v-tab>
-          <v-tab prepend-icon="mdi-cog" value="/settings" @click="navigate('/settings')">Settings</v-tab>
+          <v-tab
+            prepend-icon="mdi-view-dashboard"
+            value="/"
+            @click="navigate('/')"
+            >Dashboard</v-tab
+          >
+          <v-tab
+            prepend-icon="mdi-chart-box"
+            value="/status"
+            @click="navigate('/status')"
+            >Status</v-tab
+          >
+          <v-tab
+            prepend-icon="mdi-apps"
+            value="/apps"
+            @click="navigate('/apps')"
+            >Apps</v-tab
+          >
+          <v-tab
+            prepend-icon="mdi-cog"
+            value="/settings"
+            @click="navigate('/settings')"
+            >Settings</v-tab
+          >
         </v-tabs>
 
         <v-menu location="bottom end">
@@ -60,16 +84,16 @@
       </template>
     </v-app-bar>
 
-    <v-app-bar
-      v-else
-      app
-      class="glass-card-elevated"
-      elevation="0"
-      height="64"
-    >
+    <v-app-bar v-else app class="glass-card-elevated" elevation="0" height="64">
       <template #prepend>
         <div class="d-flex align-center ml-2">
-          <v-icon class="mr-2" color="primary" icon="mdi-raspberry-pi" size="28" />
+          <v-img
+            :src="vertexLogo"
+            alt="Vertex logo"
+            class="mr-2 app-logo"
+            height="28"
+            width="28"
+          />
           <div class="text-h6 text-primary-high font-weight-bold">
             CDO Vertex
           </div>
@@ -141,7 +165,12 @@
     <v-dialog v-model="showRestartDialog" persistent max-width="460">
       <v-card class="power-dialog">
         <v-card-text class="power-dialog__body">
-          <v-progress-circular indeterminate size="56" width="5" color="error" />
+          <v-progress-circular
+            indeterminate
+            size="56"
+            width="5"
+            color="error"
+          />
           <div>
             <h3>Restarting device</h3>
             <p>{{ restartStatusText }}</p>
@@ -153,10 +182,18 @@
     <v-dialog v-model="showShutdownDialog" persistent max-width="460">
       <v-card class="power-dialog">
         <v-card-text class="power-dialog__body">
-          <v-progress-circular indeterminate size="56" width="5" color="error" />
+          <v-progress-circular
+            indeterminate
+            size="56"
+            width="5"
+            color="error"
+          />
           <div>
             <h3>Shutting down</h3>
-            <p>The device is powering off. You will need to turn it back on manually.</p>
+            <p>
+              The device is powering off. You will need to turn it back on
+              manually.
+            </p>
           </div>
         </v-card-text>
       </v-card>
@@ -165,98 +202,102 @@
 </template>
 
 <script setup>
-  import { onMounted, onUnmounted, ref, watch } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import { useDisplay } from 'vuetify'
-  import { getHealth, rebootSystem, shutdownSystem } from '@/services/api'
-  import SystemStatusBar from '@/components/SystemStatusBar.vue'
-  import ToastContainer from '@/components/ToastContainer.vue'
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
+import { getHealth, rebootSystem, shutdownSystem } from "@/services/api";
+import vertexLogo from "@/assets/vertex-logo-v1.png";
+import SystemStatusBar from "@/components/SystemStatusBar.vue";
+import ToastContainer from "@/components/ToastContainer.vue";
 
-  const router = useRouter()
-  const route = useRoute()
-  const { mobile } = useDisplay()
+const router = useRouter();
+const route = useRoute();
+const { mobile } = useDisplay();
 
-  const currentTab = ref('/')
-  const showRestartDialog = ref(false)
-  const showShutdownDialog = ref(false)
-  const restartStatusText = ref('Restarting now. Please keep this page open.')
-  let restartPollTimer = null
-  const RESTART_POLL_MS = 3000
+const currentTab = ref("/");
+const showRestartDialog = ref(false);
+const showShutdownDialog = ref(false);
+const restartStatusText = ref("Restarting now. Please keep this page open.");
+let restartPollTimer = null;
+const RESTART_POLL_MS = 3000;
 
-  function getNavigationTab (path) {
-    if (path.startsWith('/apps')) return '/apps'
-    if (path.startsWith('/status')) return '/status'
-    if (path.startsWith('/settings')) return '/settings'
-    return '/'
+function getNavigationTab(path) {
+  if (path.startsWith("/apps")) return "/apps";
+  if (path.startsWith("/status")) return "/status";
+  if (path.startsWith("/settings")) return "/settings";
+  return "/";
+}
+
+function navigate(path) {
+  if (route.path !== path) {
+    router.push(path);
   }
+}
 
-  function navigate (path) {
-    if (route.path !== path) {
-      router.push(path)
-    }
+watch(
+  () => route.path,
+  (newPath) => {
+    currentTab.value = getNavigationTab(newPath);
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  currentTab.value = getNavigationTab(route.path);
+});
+
+onUnmounted(() => {
+  if (restartPollTimer) clearTimeout(restartPollTimer);
+});
+
+async function handleRestart() {
+  if (!confirm("Restart the device now?")) return;
+  try {
+    showRestartDialog.value = true;
+    restartStatusText.value = "Restarting now. Please keep this page open.";
+    await rebootSystem();
+    await pollForReconnect();
+  } catch (error) {
+    restartStatusText.value =
+      error?.message || "Failed to send restart command.";
   }
+}
 
-  watch(
-    () => route.path,
-    newPath => {
-      currentTab.value = getNavigationTab(newPath)
-    },
-    { immediate: true },
-  )
+async function handleShutdown() {
+  if (!confirm("Shut down the device now?")) return;
+  try {
+    showShutdownDialog.value = true;
+    await shutdownSystem();
+  } catch (error) {
+    showShutdownDialog.value = false;
+    alert(error?.message || "Failed to send shutdown command.");
+  }
+}
 
-  onMounted(() => {
-    currentTab.value = getNavigationTab(route.path)
-  })
-
-  onUnmounted(() => {
-    if (restartPollTimer) clearTimeout(restartPollTimer)
-  })
-
-  async function handleRestart () {
-    if (!confirm('Restart the device now?')) return
+async function pollForReconnect() {
+  const poll = async () => {
     try {
-      showRestartDialog.value = true
-      restartStatusText.value = 'Restarting now. Please keep this page open.'
-      await rebootSystem()
-      await pollForReconnect()
-    } catch (error) {
-      restartStatusText.value = error?.message || 'Failed to send restart command.'
-    }
-  }
-
-  async function handleShutdown () {
-    if (!confirm('Shut down the device now?')) return
-    try {
-      showShutdownDialog.value = true
-      await shutdownSystem()
-    } catch (error) {
-      showShutdownDialog.value = false
-      alert(error?.message || 'Failed to send shutdown command.')
-    }
-  }
-
-  async function pollForReconnect () {
-    const poll = async () => {
-      try {
-        await getHealth()
-        showRestartDialog.value = false
-        window.location.reload()
-        return
-      } catch {
-        restartStatusText.value = 'Waiting for the device to come back online...'
-      }
-
-      restartPollTimer = setTimeout(poll, RESTART_POLL_MS)
+      await getHealth();
+      showRestartDialog.value = false;
+      window.location.reload();
+      return;
+    } catch {
+      restartStatusText.value = "Waiting for the device to come back online...";
     }
 
-    if (restartPollTimer) clearTimeout(restartPollTimer)
-    restartPollTimer = setTimeout(poll, RESTART_POLL_MS)
-  }
+    restartPollTimer = setTimeout(poll, RESTART_POLL_MS);
+  };
+
+  if (restartPollTimer) clearTimeout(restartPollTimer);
+  restartPollTimer = setTimeout(poll, RESTART_POLL_MS);
+}
 </script>
 
 <style>
 .v-main {
-  padding-bottom: calc(var(--v-layout-bottom) + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(
+    var(--v-layout-bottom) + env(safe-area-inset-bottom)
+  ) !important;
 }
 
 .v-main > .v-container {
@@ -296,5 +337,9 @@
   display: flex;
   gap: 16px;
   align-items: center;
+}
+
+.app-logo {
+  border-radius: 6px;
 }
 </style>
