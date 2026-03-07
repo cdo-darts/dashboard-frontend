@@ -1,11 +1,10 @@
-import axios from "axios";
+﻿import axios from "axios";
 
 const RAW_API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://cdo-vertex.local";
 const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, "");
 const API_PREFIX = API_BASE_URL.endsWith("/api") ? "" : "/api";
 
-// Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15_000,
@@ -14,7 +13,6 @@ const apiClient = axios.create({
   },
 });
 
-// Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -45,10 +43,8 @@ apiClient.interceptors.response.use(
   },
 );
 
-// ========== Health Check ==========
 export const getHealth = () => apiClient.get(`${API_PREFIX}/health`);
 
-// ========== System Monitoring ==========
 export const getSystemStatus = () =>
   apiClient.get(`${API_PREFIX}/system/status`);
 export const getCPU = () => apiClient.get(`${API_PREFIX}/system/cpu`);
@@ -67,7 +63,6 @@ export const shutdownSystem = () =>
 export const getUptime = () => apiClient.get(`${API_PREFIX}/system/uptime`);
 export const getHostname = () => apiClient.get(`${API_PREFIX}/system/hostname`);
 
-// ========== Autodarts Management ==========
 export const getAutodartsStatus = () =>
   apiClient.get(`${API_PREFIX}/autodarts/status`);
 
@@ -99,23 +94,8 @@ export function getAutodartsLogs(lines = 50) {
   return apiClient.get(`${API_PREFIX}/autodarts/logs`, { params: { lines } });
 }
 
-// ========== Vertex Bridge ==========
 export function getBridgeStatus() {
   return apiClient.get(`${API_PREFIX}/bridge/status`);
-}
-
-export function installVertexBridge(data = {}) {
-  return apiClient.post(`${API_PREFIX}/apps/vertex-bridge/install`, data);
-}
-
-export function getAppJobStatus(jobId) {
-  return apiClient.get(`${API_PREFIX}/apps/jobs/${jobId}`);
-}
-
-export function getAppJobLog(jobId, lines = 200) {
-  return apiClient.get(`${API_PREFIX}/apps/jobs/${jobId}/log`, {
-    params: { lines },
-  });
 }
 
 export function startBridgeService() {
@@ -134,6 +114,24 @@ export function getBridgeLogs(lines = 200) {
   return apiClient.get(`${API_PREFIX}/bridge/logs`, { params: { lines } });
 }
 
+export function getAppsCatalog() {
+  return apiClient.get(`${API_PREFIX}/apps`);
+}
+
+export function installApp(appName, data = {}) {
+  return apiClient.post(`${API_PREFIX}/apps/${encodeURIComponent(appName)}/install`, data);
+}
+
+export function getAppJobStatus(jobId) {
+  return apiClient.get(`${API_PREFIX}/apps/jobs/${jobId}`);
+}
+
+export function getAppJobLog(jobId, lines = 200) {
+  return apiClient.get(`${API_PREFIX}/apps/jobs/${jobId}/log`, {
+    params: { lines },
+  });
+}
+
 export function getModules() {
   return apiClient.get(`${API_PREFIX}/modules`);
 }
@@ -142,7 +140,6 @@ export function getModuleHealth(moduleName) {
   return apiClient.get(`${API_PREFIX}/modules/${moduleName}/health`);
 }
 
-// ========== Camera Management ==========
 const CAMERA_PLACEHOLDER_FEEDS = [
   {
     id: "camera-1",
@@ -168,7 +165,6 @@ export function stopCameras() {
   return apiClient.post(`${API_PREFIX}/cameras/stop`);
 }
 
-// ========== Settings ==========
 export const getSettings = () => apiClient.get(`${API_PREFIX}/settings`);
 
 export function updateSettings(data) {
@@ -187,7 +183,6 @@ export function resetSettings() {
   return apiClient.post(`${API_PREFIX}/settings/reset`);
 }
 
-// ========== Dashboard Updates ==========
 export function getUpdates(maxAgeMinutes) {
   const params = {};
   if (typeof maxAgeMinutes === "number") {
@@ -198,14 +193,6 @@ export function getUpdates(maxAgeMinutes) {
 
 export function checkUpdates() {
   return apiClient.post(`${API_PREFIX}/updates/check`);
-}
-
-export function applyUpdates() {
-  return apiClient.post(`${API_PREFIX}/updates/apply`);
-}
-
-export function getUpdateStatus(jobId) {
-  return apiClient.get(`${API_PREFIX}/updates/status/${jobId}`);
 }
 
 export default apiClient;

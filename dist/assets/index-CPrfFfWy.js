@@ -1,0 +1,1 @@
+import r from"./_appName_-BvSFeTE6.js";import{c as o,e as t}from"./index-BB2bcmQF.js";import"./VContainer-Dl905BFe.js";import"./StatusBadge-BG7rO01a.js";import"./VAlert-C3lZe6Ja.js";import"./VChip-nXby5d8G.js";import"./VTextField-BPUOCKTi.js";import"./VInput-4kbgqcDs.js";const l={__name:"index",setup(e){return(p,m)=>(t(),o(r))}};export{l as default};

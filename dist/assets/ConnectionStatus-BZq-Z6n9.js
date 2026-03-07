@@ -1,0 +1,1 @@
+import{e as n,l as c,t,s as o}from"./index-BB2bcmQF.js";const i={__name:"ConnectionStatus",props:{connected:{type:Boolean,required:!0}},setup(e){return(s,a)=>(n(),c("div",{class:o(["connection-indicator",e.connected?"connected":"disconnected"])},t(e.connected?"Connected":"Disconnected"),3))}};export{i as _};

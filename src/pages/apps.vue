@@ -1,789 +1,514 @@
-<template>
+ï»¿<template>
   <v-container class="pa-4 pa-md-6" fluid>
-    <div v-if="isOverviewRoute" class="mb-6">
-      <h1 class="text-h4 text-md-h3 text-primary-high font-weight-bold mb-1">
-        Apps
-      </h1>
-      <p class="text-body-2 text-secondary">
-        Installed applications and runtime status
-      </p>
-    </div>
-
     <router-view v-if="!isOverviewRoute" />
 
-    <v-row v-else>
-      <v-col cols="12" lg="4" md="6">
-        <glass-card
-          class="h-100 hoverable-card app-card"
-          @click="router.push('/apps/autodarts')"
+    <template v-else>
+      <div class="mb-6 d-flex flex-column flex-sm-row justify-space-between align-start align-sm-center ga-3">
+        <div>
+          <h1 class="text-h4 text-md-h3 text-primary-high font-weight-bold mb-1">
+            Apps
+          </h1>
+          <p class="text-body-2 text-secondary">
+            Installable applications from the deployment catalog
+          </p>
+        </div>
+        <v-btn
+          color="primary"
+          :loading="loading"
+          prepend-icon="mdi-refresh"
+          variant="outlined"
+          @click="refreshPageData({ forceUpdates: true })"
         >
-          <v-card-text>
-            <div class="d-flex justify-space-between align-start mb-4">
-              <v-avatar color="primary" size="48" variant="tonal">
-                <v-icon icon="mdi-bullseye-arrow" />
-              </v-avatar>
-              <status-badge :variant="autodartsBadgeVariant">
-                {{ autodartsBadgeText }}
-              </status-badge>
-            </div>
-            <div class="text-h6 text-primary-high font-weight-bold">
-              Autodarts
-            </div>
-            <div class="text-body-2 text-secondary mt-1">
-              {{
-                autodartsStatus?.installed
-                  ? `Version ${autodartsStatus?.version || "n/a"}`
-                  : "Install to enable smart dartboard scoring."
-              }}
-            </div>
-            <v-chip
-              class="mt-4"
-              color="info"
-              prepend-icon="mdi-cog"
-              size="small"
-              variant="tonal"
-            >
-              Tap for controls
-            </v-chip>
-          </v-card-text>
-        </glass-card>
-      </v-col>
+          Refresh
+        </v-btn>
+      </div>
 
-      <v-col cols="12" lg="4" md="6">
-        <glass-card class="h-100">
-          <v-card-text>
-            <div class="d-flex justify-space-between align-start mb-4">
-              <v-avatar color="primary" size="48" variant="tonal">
-                <v-icon icon="mdi-bridge" />
-              </v-avatar>
-              <status-badge :variant="bridgeBadgeVariant">
-                {{ bridgeBadgeText }}
-              </status-badge>
-            </div>
+      <div v-if="loading && apps.length === 0" class="text-center py-16">
+        <v-progress-circular color="primary" indeterminate size="64" />
+        <div class="text-body-1 text-secondary mt-4">Loading app catalog...</div>
+      </div>
 
-            <div class="text-h6 text-primary-high font-weight-bold">
-              Vertex Bridge
-            </div>
-            <div class="text-body-2 text-secondary mt-1">
-              {{ bridgeSummaryText }}
-            </div>
+      <v-alert
+        v-else-if="loadError && apps.length === 0"
+        class="mb-6"
+        icon="mdi-alert-circle"
+        prominent
+        type="error"
+        variant="tonal"
+      >
+        <div class="text-h6 mb-2">Apps Unavailable</div>
+        <div class="text-body-2">{{ loadError }}</div>
+        <template #append>
+          <v-btn color="error" variant="outlined" @click="refreshPageData({ forceUpdates: true })">
+            Retry
+          </v-btn>
+        </template>
+      </v-alert>
 
-            <div v-if="bridgeStatusLoading && !bridgeStatus" class="mt-4">
-              <div class="d-flex align-center text-body-2 text-secondary">
-                <v-progress-circular
-                  class="mr-2"
-                  color="primary"
-                  indeterminate
-                  size="18"
-                  width="2"
-                />
-                Loading bridge status...
-              </div>
-            </div>
+      <template v-else>
+        <v-alert
+          v-if="loadError"
+          class="mb-4"
+          density="comfortable"
+          icon="mdi-alert"
+          type="warning"
+          variant="tonal"
+        >
+          {{ loadError }}
+        </v-alert>
 
-            <template v-else>
-              <div v-if="bridgeInstallState === 'error' && bridgeInstallError" class="mt-4">
-                <v-alert
-                  class="mb-3"
-                  icon="mdi-alert-circle"
-                  type="error"
-                  variant="tonal"
-                >
-                  {{ bridgeInstallError }}
-                </v-alert>
-              </div>
+        <v-row v-if="appCards.length">
+          <v-col
+            v-for="app in appCards"
+            :key="app.name"
+            cols="12"
+            lg="4"
+            md="6"
+          >
+            <glass-card class="h-100">
+              <v-card-text>
+                <div class="d-flex justify-space-between align-start mb-4 ga-3">
+                  <div class="d-flex align-center ga-3 min-w-0">
+                    <v-avatar color="primary" size="48" variant="tonal">
+                      <v-icon :icon="resolveAppIcon(app.icon)" />
+                    </v-avatar>
+                    <div class="min-w-0">
+                      <div class="text-h6 text-primary-high font-weight-bold text-truncate">
+                        {{ app.displayName }}
+                      </div>
+                      <div class="text-caption text-secondary">
+                        {{ formatAppType(app.type) }} app
+                      </div>
+                    </div>
+                  </div>
+                  <status-badge :variant="getAppBadgeVariant(app)">
+                    {{ getAppBadgeText(app) }}
+                  </status-badge>
+                </div>
 
-              <div v-if="bridgeInstalled" class="mt-4">
-                <div class="bridge-meta-grid mb-3">
+                <div class="text-body-2 text-secondary mb-4">
+                  {{ app.description || "No description provided in catalog." }}
+                </div>
+
+                <div class="d-flex flex-wrap ga-2 mb-4">
+                  <v-chip size="small" variant="tonal">
+                    {{ app.name }}
+                  </v-chip>
+                  <v-chip size="small" variant="outlined">
+                    {{ app.repo }}
+                  </v-chip>
+                  <v-chip v-if="app.serviceName" size="small" variant="outlined">
+                    {{ app.serviceName }}
+                  </v-chip>
+                  <v-chip
+                    v-if="app.defaultPort"
+                    size="small"
+                    variant="outlined"
+                  >
+                    Port {{ app.defaultPort }}
+                  </v-chip>
+                </div>
+
+                <div class="app-meta-grid mb-4">
                   <div>
-                    <div class="text-caption text-secondary">Version</div>
+                    <div class="text-caption text-secondary">Installed</div>
                     <div class="text-body-2 text-primary-high font-weight-medium">
-                      {{ bridgeStatus?.version || 'n/a' }}
+                      {{ getInstalledVersion(app) || "Not installed" }}
                     </div>
                   </div>
                   <div>
-                    <div class="text-caption text-secondary">Health</div>
+                    <div class="text-caption text-secondary">Latest</div>
                     <div class="text-body-2 text-primary-high font-weight-medium">
-                      {{ formatStateLabel(bridgeStatus?.health?.status) }}
+                      {{ getLatestVersion(app) || "Unknown" }}
                     </div>
                   </div>
                   <div>
-                    <div class="text-caption text-secondary">Service</div>
+                    <div class="text-caption text-secondary">Updates</div>
                     <div class="text-body-2 text-primary-high font-weight-medium">
-                      {{ bridgeServiceSummary }}
+                      {{ app.hasUpdate ? "Available" : "Current" }}
                     </div>
                   </div>
                   <div>
-                    <div class="text-caption text-secondary">Module</div>
+                    <div class="text-caption text-secondary">Components</div>
                     <div class="text-body-2 text-primary-high font-weight-medium">
-                      {{ bridgeStatus?.module_registered ? 'Registered' : 'Missing' }}
+                      {{ app.components.length }}
                     </div>
                   </div>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                  <v-btn
-                    color="success"
-                    prepend-icon="mdi-play"
-                    variant="tonal"
-                    :loading="bridgeServiceAction === 'start'"
-                    :disabled="bridgeServiceBusy || bridgeRunning"
-                    @click="handleBridgeServiceAction('start')"
-                  >
-                    Start
-                  </v-btn>
-                  <v-btn
-                    color="warning"
-                    prepend-icon="mdi-stop"
-                    variant="tonal"
-                    :loading="bridgeServiceAction === 'stop'"
-                    :disabled="bridgeServiceBusy || !bridgeRunning"
-                    @click="handleBridgeServiceAction('stop')"
-                  >
-                    Stop
-                  </v-btn>
-                  <v-btn
-                    color="primary"
-                    prepend-icon="mdi-restart"
-                    variant="tonal"
-                    :loading="bridgeServiceAction === 'restart'"
-                    :disabled="bridgeServiceBusy"
-                    @click="handleBridgeServiceAction('restart')"
-                  >
-                    Restart
-                  </v-btn>
-                  <v-btn
-                    color="primary"
-                    prepend-icon="mdi-refresh"
+                <div v-if="app.components.length" class="mb-4">
+                  <div class="text-caption text-secondary mb-2">Catalog components</div>
+                  <div class="d-flex flex-wrap ga-2">
+                    <v-chip
+                      v-for="component in app.components"
+                      :key="`${app.name}-${component.kind}`"
+                      :color="component.update_available ? 'warning' : undefined"
+                      size="small"
+                      variant="tonal"
+                    >
+                      {{ formatComponentLabel(component) }}
+                    </v-chip>
+                  </div>
+                </div>
+
+                <div v-if="app.customPort && !hasInstalledComponent(app)" class="mb-3">
+                  <v-text-field
+                    v-model="installFormByApp[app.name].port"
+                    density="comfortable"
+                    hint="Leave empty to use the catalog default port."
+                    label="Custom port"
+                    persistent-hint
+                    type="number"
                     variant="outlined"
-                    :loading="bridgeStatusLoading"
-                    @click="handleBridgeCheckStatus"
+                  />
+                </div>
+
+                <div class="d-flex flex-wrap ga-2">
+                  <v-btn
+                    v-if="!hasInstalledComponent(app)"
+                    color="primary"
+                    :disabled="isInstalling(app.name)"
+                    :loading="isInstalling(app.name)"
+                    prepend-icon="mdi-download"
+                    @click="runAppAction(app)"
                   >
-                    Refresh
+                    Install
                   </v-btn>
                   <v-btn
-                    v-if="bridgeUiUrl"
+                    v-if="hasInstalledComponent(app) && app.hasUpdate"
+                    color="warning"
+                    :disabled="isInstalling(app.name)"
+                    :loading="isInstalling(app.name)"
+                    prepend-icon="mdi-update"
+                    @click="runAppAction(app)"
+                  >
+                    Update
+                  </v-btn>
+                  <v-btn
+                    color="secondary"
+                    :disabled="!getJobState(app.name)?.jobId"
+                    prepend-icon="mdi-text-box-search"
+                    variant="outlined"
+                    @click="fetchInstallLog(app.name)"
+                  >
+                    Refresh log
+                  </v-btn>
+                  <v-btn
+                    v-if="app.ui?.route"
                     color="info"
                     prepend-icon="mdi-open-in-new"
                     variant="outlined"
-                    :href="bridgeUiUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    @click="router.push(app.ui.route)"
                   >
-                    Open UI
+                    Open
                   </v-btn>
                 </div>
 
-                <div class="bridge-log-panel mb-3">
-                  <pre class="bridge-log-content">{{
-                    bridgeServiceLogs || 'No service logs available'
-                  }}</pre>
+                <div v-if="getJobState(app.name)?.error" class="mt-4">
+                  <v-alert density="comfortable" type="error" variant="tonal">
+                    {{ getJobState(app.name)?.error }}
+                  </v-alert>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2">
-                  <v-btn
-                    color="secondary"
-                    prepend-icon="mdi-text-box-search"
-                    variant="outlined"
-                    :loading="bridgeLogsLoading"
-                    @click="fetchBridgeServiceLogs"
-                  >
-                    Refresh logs
-                  </v-btn>
-                  <v-btn
-                    color="secondary"
-                    prepend-icon="mdi-content-copy"
-                    variant="outlined"
-                    @click="copyText(bridgeServiceLogs, 'Bridge service logs copied')"
-                  >
-                    Copy logs
-                  </v-btn>
+                <div v-if="getJobState(app.name)?.jobId" class="mt-4">
+                  <div class="text-caption text-secondary mb-2">
+                    {{ getJobState(app.name)?.actionLabel }} job {{ getJobState(app.name)?.jobId }}
+                  </div>
+                  <div class="app-log-panel">
+                    <pre class="app-log-content">{{
+                      getJobState(app.name)?.logs || "Waiting for installer output..."
+                    }}</pre>
+                  </div>
                 </div>
-              </div>
+              </v-card-text>
+            </glass-card>
+          </v-col>
+        </v-row>
 
-              <div v-else class="mt-4">
-                <v-btn
-                  block
-                  color="primary"
-                  :loading="bridgeInstallState === 'installing'"
-                  :disabled="bridgeInstallState === 'installing'"
-                  prepend-icon="mdi-download"
-                  @click="handleBridgeInstall"
-                >
-                  Install
-                </v-btn>
-              </div>
-
-              <div v-if="bridgeInstallState === 'installing'" class="mt-4">
-                <div class="d-flex align-center text-body-2 text-secondary mb-3">
-                  <v-progress-circular
-                    class="mr-2"
-                    color="primary"
-                    indeterminate
-                    size="18"
-                    width="2"
-                  />
-                  Installing Vertex Bridge...
-                </div>
-                <div class="bridge-log-panel mb-3">
-                  <pre class="bridge-log-content">{{
-                    bridgeInstallLogs || 'Waiting for installer output...'
-                  }}</pre>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                  <v-btn
-                    color="primary"
-                    prepend-icon="mdi-refresh"
-                    variant="outlined"
-                    @click="handleBridgeCheckStatus"
-                  >
-                    Check status
-                  </v-btn>
-                  <v-btn
-                    color="secondary"
-                    prepend-icon="mdi-content-copy"
-                    variant="outlined"
-                    @click="copyText(bridgeInstallLogs, 'Bridge install logs copied')"
-                  >
-                    Copy logs
-                  </v-btn>
-                </div>
-              </div>
-            </template>
-          </v-card-text>
-        </glass-card>
-      </v-col>
-
-      <v-col cols="12" lg="4" md="6">
-        <glass-card class="h-100">
+        <glass-card v-else>
           <v-card-text>
-            <div class="d-flex align-center justify-space-between mb-3">
-              <div class="text-h6 text-primary-high">Future App Slots</div>
-              <v-icon color="secondary" icon="mdi-download-circle-outline" />
+            <div class="text-h6 text-primary-high mb-2">No catalog apps returned</div>
+            <div class="text-body-2 text-secondary">
+              The frontend is now reading app definitions from <code>/api/apps</code>.
             </div>
-            <div class="text-body-2 text-secondary mb-3">
-              This area is ready for downloadable apps in upcoming releases.
-            </div>
-            <v-chip color="secondary" size="small" variant="outlined"
-              >Coming Soon</v-chip
-            >
           </v-card-text>
         </glass-card>
-      </v-col>
-    </v-row>
+      </template>
+    </template>
   </v-container>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import GlassCard from "@/components/GlassCard.vue";
 import StatusBadge from "@/components/StatusBadge.vue";
 import { useToast } from "@/composables/useToast";
 import {
+  checkUpdates,
   getAppJobLog,
   getAppJobStatus,
-  getAutodartsStatus,
-  getBridgeLogs,
-  getBridgeStatus,
-  installVertexBridge,
-  restartBridgeService,
-  startBridgeService,
-  stopBridgeService,
+  getAppsCatalog,
+  getUpdates,
+  installApp,
 } from "@/services/api";
 
-const BRIDGE_INSTALL_JOB_KEY = "vertex-bridge-install-job-id";
-const BRIDGE_INSTALL_STARTED_AT_KEY = "vertex-bridge-install-started-at";
-const BRIDGE_POLL_MS = 1500;
-const BRIDGE_TIMEOUT_MS = 15 * 60 * 1000;
-const BRIDGE_LOG_LINES = 200;
+const INSTALL_POLL_MS = 1500;
+const INSTALL_LOG_LINES = 200;
 
 const route = useRoute();
 const router = useRouter();
 const { success, error: showError } = useToast();
 
-const autodartsStatus = ref(null);
-const boardManagerState = ref(null);
-const bridgeStatus = ref(null);
-const bridgeStatusLoading = ref(false);
-const bridgeInstallState = ref("idle");
-const bridgeInstallJobId = ref("");
-const bridgeInstallStartedAt = ref(0);
-const bridgeInstallStatus = ref(null);
-const bridgeInstallLogs = ref("");
-const bridgeInstallError = ref("");
-const bridgeServiceLogs = ref("");
-const bridgeLogsLoading = ref(false);
-const bridgeServiceAction = ref("");
-let boardManagerIntervalId = null;
-let appsStatusIntervalId = null;
-let bridgePollTimeoutId = null;
+const loading = ref(false);
+const loadError = ref("");
+const apps = ref([]);
+const updatesData = ref(null);
+const installFormByApp = reactive({});
+const installJobsByApp = reactive({});
 
 const isOverviewRoute = computed(() => route.path === "/apps");
-const bridgeInstalled = computed(() => !!bridgeStatus.value?.installed);
-const bridgeRunning = computed(() => !!bridgeStatus.value?.running);
-const bridgeUiUrl = computed(() => String(bridgeStatus.value?.ui_url || ""));
-const bridgeServiceBusy = computed(() => !!bridgeServiceAction.value);
 
-const autodartsBadgeText = computed(() => {
-  if (!autodartsStatus.value?.installed) return "Not Installed";
-  const boardState = normalizeState(
-    boardManagerState.value?.status || boardManagerState.value?.event,
-  );
-  if (boardState) return boardState;
-  if (boardManagerState.value?.connected) {
-    return boardManagerState.value?.running ? "Running" : "Stopped";
+function ensureInstallForm(appName, app = {}) {
+  if (!installFormByApp[appName]) {
+    installFormByApp[appName] = {
+      port: app.defaultPort ? String(app.defaultPort) : "",
+    };
   }
-  const rawStatus = String(autodartsStatus.value?.status || "");
-  const apiState = normalizeState(rawStatus);
-  if (apiState) return apiState;
-  return autodartsStatus.value?.active ? "Running" : "Stopped";
+}
+
+function ensureJobState(appName) {
+  if (!installJobsByApp[appName]) {
+    installJobsByApp[appName] = {
+      jobId: "",
+      logs: "",
+      error: "",
+      running: false,
+      timerId: null,
+      actionLabel: "Install",
+    };
+  }
+  return installJobsByApp[appName];
+}
+
+const appCards = computed(() => {
+  const componentsByApp = new Map();
+  for (const component of updatesData.value?.components || []) {
+    const appName = component.app || component.name;
+    if (!componentsByApp.has(appName)) {
+      componentsByApp.set(appName, []);
+    }
+    componentsByApp.get(appName).push(component);
+  }
+
+  return apps.value.map((app) => {
+    ensureInstallForm(app.name, app);
+    const components = componentsByApp.get(app.name) || [];
+    const hasUpdate = components.some((component) => component.update_available);
+    return {
+      ...app,
+      components,
+      hasUpdate,
+    };
+  });
 });
 
-const autodartsBadgeVariant = computed(() => {
-  const status = autodartsBadgeText.value.toLowerCase();
-  if (status === "running") return "success";
-  if (status === "starting") return "info";
-  if (status === "calibrating") return "warning";
+function getJobState(appName) {
+  return installJobsByApp[appName] || null;
+}
+
+function isInstalling(appName) {
+  return !!getJobState(appName)?.running;
+}
+
+function hasInstalledComponent(app) {
+  return app.components.some((component) => {
+    const version = String(component.current_version || "").trim().toLowerCase();
+    return version && version !== "unknown" && version !== "not installed";
+  });
+}
+
+function getInstalledVersion(app) {
+  const component = app.components.find((item) => {
+    const version = String(item.current_version || "").trim().toLowerCase();
+    return version && version !== "unknown" && version !== "not installed";
+  });
+  return component?.current_version || "";
+}
+
+function getLatestVersion(app) {
+  return app.components.find((component) => component.latest_version)?.latest_version || "";
+}
+
+function getAppBadgeText(app) {
+  if (isInstalling(app.name)) {
+    return getJobState(app.name)?.actionLabel === "Update" ? "Updating" : "Installing";
+  }
+  if (getJobState(app.name)?.error && !hasInstalledComponent(app)) return "Install Failed";
+  if (app.hasUpdate) return "Update Available";
+  if (hasInstalledComponent(app)) return "Installed";
+  return "Available";
+}
+
+function getAppBadgeVariant(app) {
+  const label = getAppBadgeText(app).toLowerCase();
+  if (label === "installed") return "success";
+  if (label === "update available") return "warning";
+  if (label === "installing" || label === "updating") return "info";
+  if (label === "install failed") return "error";
   return "neutral";
-});
+}
 
-const bridgeBadgeText = computed(() => {
-  if (bridgeInstallState.value === "installing") return "Installing";
-  if (bridgeInstallState.value === "error" && !bridgeInstalled.value) {
-    return "Install Failed";
+function resolveAppIcon(icon) {
+  if (!icon) return "mdi-package-variant-closed";
+  return icon.startsWith("mdi-") ? icon : `mdi-${icon}`;
+}
+
+function formatAppType(type) {
+  return String(type || "app").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatComponentLabel(component) {
+  const label = component.kind === "frontend" ? "Frontend" : "Backend";
+  const currentVersion = component.current_version || "unknown";
+  const latestVersion = component.latest_version || "unknown";
+  return `${label}: ${currentVersion} -> ${latestVersion}`;
+}
+
+function clearInstallPolling(appName) {
+  const state = getJobState(appName);
+  if (!state?.timerId) return;
+  clearTimeout(state.timerId);
+  state.timerId = null;
+}
+
+function getActionLabel(app) {
+  return hasInstalledComponent(app) && app.hasUpdate ? "Update" : "Install";
+}
+
+async function fetchCatalog() {
+  const response = await getAppsCatalog();
+  const appList = Array.isArray(response.data?.apps) ? response.data.apps : [];
+  apps.value = appList;
+  for (const app of appList) {
+    ensureInstallForm(app.name, app);
+    ensureJobState(app.name);
   }
-  if (!bridgeStatus.value) return "Checking";
-  if (!bridgeInstalled.value) return "Not Installed";
-  return bridgeRunning.value ? "Running" : "Installed";
-});
-
-const bridgeBadgeVariant = computed(() => {
-  const text = bridgeBadgeText.value.toLowerCase();
-  if (text === "running") return "success";
-  if (text === "installed") return "warning";
-  if (text === "installing" || text === "checking") return "info";
-  if (text === "install failed") return "error";
-  return "neutral";
-});
-
-const bridgeSummaryText = computed(() => {
-  if (!bridgeStatus.value) return "Checking bridge installation and runtime status.";
-  if (!bridgeInstalled.value) {
-    return "Install Vertex Bridge to expose the bridge UI and service controls.";
-  }
-
-  const version = bridgeStatus.value?.version || "n/a";
-  const serviceState = formatStateLabel(
-    bridgeStatus.value?.service?.active_state ||
-      bridgeStatus.value?.health?.status ||
-      (bridgeRunning.value ? "running" : "stopped"),
-  );
-  return `Version ${version} • Service ${serviceState}`;
-});
-
-const bridgeServiceSummary = computed(() => {
-  const service = bridgeStatus.value?.service || {};
-  const enabled = service.enabled ? "enabled" : "disabled";
-  const active = formatStateLabel(service.active_state || "inactive");
-  return `${active} • ${enabled}`;
-});
-
-function isAutodartsUnavailableError(error) {
-  const message = String(error?.message || "").toLowerCase();
-  return (
-    error?.status === 404 ||
-    error?.status === 502 ||
-    error?.status === 503 ||
-    message.includes("not running") ||
-    message.includes("not installed") ||
-    message.includes("not found")
-  );
 }
 
-function normalizeState(value) {
-  const raw = String(value || "").toLowerCase();
-  if (!raw) return "";
-  if (raw.includes("start")) return "Starting";
-  if (raw.includes("calibrat")) return "Calibrating";
-  if (raw.includes("run")) return "Running";
-  if (raw.includes("stop")) return "Stopped";
-  return "";
+async function fetchUpdates({ force = false } = {}) {
+  const response = force ? await checkUpdates() : await getUpdates();
+  updatesData.value = response.data || null;
 }
 
-function formatStateLabel(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "Unknown";
-  return raw
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function buildBoardManagerUrl(host) {
-  const protocol = window.location.protocol === "https:" ? "https" : "http";
-  const statePath =
-    import.meta.env.VITE_BOARD_MANAGER_STATE_PATH || "/api/state";
-  const normalizedPath = statePath.startsWith("/")
-    ? statePath
-    : `/${statePath}`;
-  return `${protocol}://${host}:3180${normalizedPath}`;
-}
-
-async function fetchBoardManagerState() {
-  const host =
-    import.meta.env.VITE_BOARD_MANAGER_HOST ||
-    (import.meta.env.DEV ? "cdo-vertex.local" : "localhost");
-  const url = buildBoardManagerUrl(host);
+async function refreshPageData({ forceUpdates = false } = {}) {
+  loading.value = true;
+  loadError.value = "";
   try {
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error("Board Manager request failed");
-    boardManagerState.value = await response.json();
-  } catch {
-    boardManagerState.value = null;
-  }
-}
-
-function startBoardManagerPolling() {
-  if (boardManagerIntervalId) return;
-  fetchBoardManagerState();
-  boardManagerIntervalId = setInterval(fetchBoardManagerState, 1000);
-}
-
-function stopBoardManagerPolling() {
-  if (boardManagerIntervalId) {
-    clearInterval(boardManagerIntervalId);
-    boardManagerIntervalId = null;
-  }
-}
-
-async function fetchAppsStatus() {
-  try {
-    const response = await getAutodartsStatus();
-    autodartsStatus.value = response.data;
-    return !!autodartsStatus.value?.installed;
+    await Promise.all([fetchCatalog(), fetchUpdates({ force: forceUpdates })]);
   } catch (error) {
-    if (isAutodartsUnavailableError(error)) {
-      autodartsStatus.value = { installed: false, active: false };
-      stopAppsStatusPolling();
-      stopBoardManagerPolling();
-      return false;
-    }
-    showError("Failed to load app status: " + error.message);
-    return false;
-  }
-}
-
-function setBridgeInstallJobId(jobId) {
-  bridgeInstallJobId.value = String(jobId || "");
-
-  if (typeof window === "undefined") return;
-
-  if (bridgeInstallJobId.value) {
-    localStorage.setItem(BRIDGE_INSTALL_JOB_KEY, bridgeInstallJobId.value);
-  } else {
-    localStorage.removeItem(BRIDGE_INSTALL_JOB_KEY);
-    localStorage.removeItem(BRIDGE_INSTALL_STARTED_AT_KEY);
-  }
-}
-
-function setBridgeInstallStartedAt(startedAt) {
-  bridgeInstallStartedAt.value = Number(startedAt || 0);
-  if (typeof window === "undefined") return;
-
-  if (bridgeInstallStartedAt.value > 0) {
-    localStorage.setItem(
-      BRIDGE_INSTALL_STARTED_AT_KEY,
-      String(bridgeInstallStartedAt.value),
-    );
-  } else {
-    localStorage.removeItem(BRIDGE_INSTALL_STARTED_AT_KEY);
-  }
-}
-
-function restoreBridgeInstallState() {
-  if (typeof window === "undefined") return;
-
-  const storedJobId = localStorage.getItem(BRIDGE_INSTALL_JOB_KEY);
-  const storedStartedAt = Number(
-    localStorage.getItem(BRIDGE_INSTALL_STARTED_AT_KEY) || 0,
-  );
-
-  if (!storedJobId) return;
-
-  bridgeInstallState.value = "installing";
-  setBridgeInstallJobId(storedJobId);
-  setBridgeInstallStartedAt(storedStartedAt || Date.now());
-}
-
-function clearBridgePolling() {
-  if (bridgePollTimeoutId) {
-    clearTimeout(bridgePollTimeoutId);
-    bridgePollTimeoutId = null;
-  }
-}
-
-async function refreshBridgeStatus({ silent = false } = {}) {
-  bridgeStatusLoading.value = true;
-  try {
-    const response = await getBridgeStatus();
-    bridgeStatus.value = response.data || null;
-
-    if (bridgeInstalled.value) {
-      bridgeInstallError.value = "";
-      if (bridgeInstallState.value !== "installing") {
-        bridgeInstallState.value = "success";
-      }
-      await fetchBridgeServiceLogs({ silent: true });
-    } else if (bridgeInstallState.value !== "installing") {
-      bridgeInstallState.value = "idle";
-      bridgeServiceLogs.value = "";
-    }
-
-    return response.data || null;
-  } catch (error) {
-    if (!silent) {
-      showError("Failed to refresh bridge status: " + error.message);
-    }
-    return null;
+    loadError.value = error.message;
   } finally {
-    bridgeStatusLoading.value = false;
+    loading.value = false;
   }
 }
 
-async function fetchBridgeInstallLog() {
-  if (!bridgeInstallJobId.value) return;
+async function fetchInstallLog(appName) {
+  const state = ensureJobState(appName);
+  if (!state.jobId) return;
 
   try {
-    const response = await getAppJobLog(
-      bridgeInstallJobId.value,
-      BRIDGE_LOG_LINES,
-    );
-    bridgeInstallLogs.value =
-      response.data?.content || bridgeInstallLogs.value || "";
+    const response = await getAppJobLog(state.jobId, INSTALL_LOG_LINES);
+    state.logs = response.data?.content || state.logs || "";
   } catch {
-    // Keep the latest known log tail in UI when polling log is temporarily unavailable.
   }
 }
 
-async function fetchBridgeServiceLogs({ silent = false } = {}) {
-  if (!bridgeInstalled.value) return;
-
-  bridgeLogsLoading.value = true;
-  try {
-    const response = await getBridgeLogs(BRIDGE_LOG_LINES);
-    bridgeServiceLogs.value = response.data?.content || "";
-  } catch (error) {
-    if (!silent) {
-      showError("Failed to load bridge logs: " + error.message);
-    }
-  } finally {
-    bridgeLogsLoading.value = false;
-  }
-}
-
-async function handleBridgeInstallPollingTick() {
-  if (!bridgeInstallJobId.value) return;
-
-  const elapsed = Date.now() - bridgeInstallStartedAt.value;
-  if (elapsed > BRIDGE_TIMEOUT_MS) {
-    clearBridgePolling();
-    bridgeInstallState.value = "error";
-    bridgeInstallError.value =
-      "Install timed out. Use Check status to re-verify the backend job.";
-    await fetchBridgeInstallLog();
-    return;
-  }
+async function pollInstall(appName) {
+  const state = ensureJobState(appName);
+  if (!state.jobId) return;
 
   try {
-    const response = await getAppJobStatus(bridgeInstallJobId.value);
-    bridgeInstallStatus.value = response.data || null;
-    await fetchBridgeInstallLog();
+    const response = await getAppJobStatus(state.jobId);
+    const status = response.data || {};
+    state.running = !!status.running && !status.finished;
+    await fetchInstallLog(appName);
 
-    const finished = !!bridgeInstallStatus.value?.finished;
-    const running = !!bridgeInstallStatus.value?.running;
-    if (!running && finished) {
-      clearBridgePolling();
-      setBridgeInstallJobId("");
-      setBridgeInstallStartedAt(0);
-
-      await refreshBridgeStatus({ silent: true });
-      if (bridgeInstalled.value) {
-        bridgeInstallState.value = "success";
-        bridgeInstallError.value = "";
-        success("Vertex Bridge installed successfully");
-        return;
+    if (status.finished && !status.running) {
+      clearInstallPolling(appName);
+      state.running = false;
+      if (status.success === false || status.error) {
+        state.error = status.error || `${state.actionLabel} failed.`;
+        showError(`${appName} ${state.actionLabel.toLowerCase()} failed: ${state.error}`);
+      } else {
+        state.error = "";
+        success(`${appName} ${state.actionLabel.toLowerCase()} finished`);
       }
-
-      bridgeInstallState.value = "error";
-      bridgeInstallError.value =
-        "Install finished but Vertex Bridge is still not installed.";
+      await refreshPageData({ forceUpdates: true });
       return;
     }
   } catch (error) {
-    bridgeInstallError.value = error.message;
-    await fetchBridgeInstallLog();
+    state.error = error.message;
   }
 
-  clearBridgePolling();
-  bridgePollTimeoutId = setTimeout(
-    handleBridgeInstallPollingTick,
-    BRIDGE_POLL_MS,
-  );
+  clearInstallPolling(appName);
+  state.timerId = setTimeout(() => pollInstall(appName), INSTALL_POLL_MS);
 }
 
-async function startBridgeInstallPolling() {
-  if (!bridgeInstallJobId.value) return;
-  bridgeInstallState.value = "installing";
-  clearBridgePolling();
-  bridgePollTimeoutId = setTimeout(handleBridgeInstallPollingTick, 0);
-}
+async function runAppAction(app) {
+  const state = ensureJobState(app.name);
+  if (state.running) return;
 
-async function handleBridgeInstall() {
-  if (bridgeInstallState.value === "installing") return;
+  state.error = "";
+  state.logs = "";
+  state.jobId = "";
+  state.running = true;
+  state.actionLabel = getActionLabel(app);
 
-  bridgeInstallError.value = "";
-  bridgeInstallLogs.value = "";
-  bridgeInstallStatus.value = null;
+  const payload = {};
+  const form = installFormByApp[app.name];
+  if (!hasInstalledComponent(app) && app.customPort && form?.port?.trim()) {
+    payload.port = Number(form.port);
+  }
 
   try {
-    const response = await installVertexBridge({
-      version: "latest",
-      port: "9920",
-    });
+    const response = await installApp(app.name, payload);
     const result = response.data || {};
-
     if (!result.job_id) {
-      bridgeInstallState.value = "error";
-      bridgeInstallError.value =
-        result.error || "Install did not return a job id.";
+      state.running = false;
+      state.error = result.error || `${state.actionLabel} did not return a job id.`;
       return;
     }
 
-    setBridgeInstallJobId(result.job_id);
-    setBridgeInstallStartedAt(Date.now());
-    bridgeInstallState.value = "installing";
-    await startBridgeInstallPolling();
+    state.jobId = String(result.job_id);
+    state.logs = "";
+    await pollInstall(app.name);
   } catch (error) {
-    bridgeInstallState.value = "error";
-    bridgeInstallError.value = error.message;
-    showError("Failed to start bridge install: " + error.message);
+    state.running = false;
+    state.error = error.message;
+    showError(`Failed to start ${app.displayName} ${state.actionLabel.toLowerCase()}: ${error.message}`);
   }
 }
-
-async function handleBridgeCheckStatus() {
-  if (bridgeInstallJobId.value) {
-    bridgeInstallState.value = "installing";
-    await startBridgeInstallPolling();
-    return;
-  }
-
-  await refreshBridgeStatus();
-  if (bridgeInstalled.value) {
-    success("Bridge status refreshed");
-  }
-}
-
-async function handleBridgeServiceAction(action) {
-  const actionMap = {
-    start: { fn: startBridgeService, label: "started" },
-    stop: { fn: stopBridgeService, label: "stopped" },
-    restart: { fn: restartBridgeService, label: "restarted" },
-  };
-  const target = actionMap[action];
-  if (!target) return;
-
-  bridgeServiceAction.value = action;
-  try {
-    await target.fn();
-    await refreshBridgeStatus({ silent: true });
-    await fetchBridgeServiceLogs({ silent: true });
-    success(`Bridge service ${target.label}`);
-  } catch (error) {
-    showError(`Failed to ${action} bridge service: ${error.message}`);
-  } finally {
-    bridgeServiceAction.value = "";
-  }
-}
-
-async function copyText(text, successMessage) {
-  const value = String(text || "").trim();
-  if (!value) {
-    showError("No logs available to copy");
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(value);
-    success(successMessage);
-  } catch (error) {
-    showError("Failed to copy logs: " + error.message);
-  }
-}
-
-async function startAppsStatusPolling() {
-  if (appsStatusIntervalId) return;
-  const isInstalled = await fetchAppsStatus();
-  if (!isInstalled) {
-    stopBoardManagerPolling();
-    return;
-  }
-  startBoardManagerPolling();
-  appsStatusIntervalId = setInterval(fetchAppsStatus, 1000);
-}
-
-function stopAppsStatusPolling() {
-  if (appsStatusIntervalId) {
-    clearInterval(appsStatusIntervalId);
-    appsStatusIntervalId = null;
-  }
-}
-
-watch(
-  () => route.path,
-  async (newPath) => {
-    if (newPath === "/apps") {
-      await startAppsStatusPolling();
-      await refreshBridgeStatus({ silent: true });
-    } else {
-      stopAppsStatusPolling();
-      stopBoardManagerPolling();
-    }
-  },
-);
 
 onMounted(async () => {
-  restoreBridgeInstallState();
-
-  if (isOverviewRoute.value) {
-    await startAppsStatusPolling();
-  }
-
-  await refreshBridgeStatus({ silent: true });
-
-  if (bridgeInstallJobId.value) {
-    await startBridgeInstallPolling();
-  }
+  await refreshPageData();
 });
 
 onUnmounted(() => {
-  stopAppsStatusPolling();
-  stopBoardManagerPolling();
-  clearBridgePolling();
+  for (const appName of Object.keys(installJobsByApp)) {
+    clearInstallPolling(appName);
+  }
 });
 </script>
 
 <style scoped>
-.app-card {
-  cursor: pointer;
-}
-
-.bridge-meta-grid {
+.app-meta-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.bridge-log-panel {
+.app-log-panel {
   background: color-mix(in srgb, var(--app-surface-strong) 80%, transparent);
   border-radius: 8px;
   max-height: 220px;
@@ -791,7 +516,7 @@ onUnmounted(() => {
   padding: 10px;
 }
 
-.bridge-log-content {
+.app-log-content {
   font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.45;
@@ -800,12 +525,13 @@ onUnmounted(() => {
   word-wrap: break-word;
 }
 
+.min-w-0 {
+  min-width: 0;
+}
+
 @media (max-width: 600px) {
-  .bridge-meta-grid {
+  .app-meta-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>
-
-
-

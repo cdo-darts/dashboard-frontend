@@ -19,7 +19,8 @@ declare module 'vue-router/auto-routes' {
    */
   export interface RouteNamedMap {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
-    '/apps': RouteRecordInfo<'/apps', '/apps', Record<never, never>, Record<never, never>, '/apps/autodarts/' | '/apps/autodarts/cameras'>,
+    '/apps': RouteRecordInfo<'/apps', '/apps', Record<never, never>, Record<never, never>, '/apps/[appName]' | '/apps/autodarts/' | '/apps/autodarts/cameras'>,
+    '/apps/[appName]': RouteRecordInfo<'/apps/[appName]', '/apps/:appName', { appName: ParamValue<true> }, { appName: ParamValue<false> }>,
     '/apps/autodarts/': RouteRecordInfo<'/apps/autodarts/', '/apps/autodarts', Record<never, never>, Record<never, never>>,
     '/apps/autodarts/cameras': RouteRecordInfo<'/apps/autodarts/cameras', '/apps/autodarts/cameras', Record<never, never>, Record<never, never>>,
     '/autodarts': RouteRecordInfo<'/autodarts', '/autodarts', Record<never, never>, Record<never, never>>,
@@ -43,8 +44,12 @@ declare module 'vue-router/auto-routes' {
       views: never
     }
     'src/pages/apps.vue': {
-      routes: '/apps' | '/apps/autodarts/' | '/apps/autodarts' | '/apps/autodarts/cameras'
+      routes: '/apps' | '/apps/autodarts/' | '/apps/[appName]' | '/apps/autodarts' | '/apps/autodarts/cameras'
       views: 'default'
+    }
+    'src/pages/apps/[appName].vue': {
+      routes: '/apps/[appName]'
+      views: never
     }
     'src/pages/apps/autodarts/index.vue': {
       routes: '/apps/autodarts/'
