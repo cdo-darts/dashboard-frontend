@@ -1,0 +1,5 @@
+{
+  "module": "initialise",
+  "version": "0.1.0",
+  "description": "Runs once on first boot. Generates UUID, sets hostname, enables Bluetooth and WiFi, writes shared config."
+}

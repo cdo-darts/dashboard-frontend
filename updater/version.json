@@ -1,0 +1,5 @@
+{
+  "module": "updater",
+  "version": "0.1.0",
+  "description": "Checks GitHub for per-module updates and notifies the dashboard. Handles safe module updates and service restarts."
+}

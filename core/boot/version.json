@@ -1,0 +1,5 @@
+{
+  "module": "boot",
+  "version": "0.1.0",
+  "description": "Runs on every boot. Reads shared config and orchestrates all other services."
+}

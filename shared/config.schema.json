@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CDO Vertex Shared Config",
+  "type": "object",
+  "required": ["uuid", "short_id", "hostname", "initialised"],
+  "properties": {
+    "uuid": {
+      "type": "string",
+      "description": "Full UUID generated on first boot"
+    },
+    "short_id": {
+      "type": "string",
+      "description": "Last 6 characters of UUID used in hostname and BLE broadcast"
+    },
+    "hostname": {
+      "type": "string",
+      "description": "Device hostname e.g. cdo-vertex-ght61a"
+    },
+    "initialised": {
+      "type": "boolean",
+      "description": "True after core/initialise has run successfully. Prevents re-initialisation on subsequent boots."
+    },
+    "wifi_ssid": {
+      "type": "string",
+      "description": "Saved WiFi network name"
+    },
+    "wifi_password_encrypted": {
+      "type": "string",
+      "description": "AES encrypted WiFi password"
+    },
+    "registered_with_api": {
+      "type": "boolean",
+      "description": "True after device has successfully registered with api.cdo-darts.com"
+    },
+    "claiming_token": {
+      "type": "string",
+      "description": "Short-lived token returned by API on registration, used to claim the device in the app"
+    },
+    "claiming_token_expires": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp after which the claiming token is invalid"
+    },
+    "api_base_url": {
+      "type": "string",
+      "description": "Base URL for the CDO API e.g. https://api.cdo-darts.com"
+    },
+    "dashboard_port": {
+      "type": "integer",
+      "description": "Port the local dashboard runs on, default 8080"
+    }
+  }
+}
