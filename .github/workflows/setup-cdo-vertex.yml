@@ -1,0 +1,129 @@
+name: Setup cdo-vertex Repository
+
+# Required secret: ORG_PAT — a fine-grained personal access token scoped to the
+# cdodarts organisation with the following permissions:
+#   - Administration: Read and Write  (to create the repository)
+#   - Contents: Read and Write        (to create files)
+#   - Metadata: Read-only             (implicit)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-repo:
+    runs-on: ubuntu-latest
+    # All GitHub API calls use ORG_PAT, so GITHUB_TOKEN needs no permissions.
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.ORG_PAT }}
+      ORG: cdodarts
+      REPO: cdo-vertex
+
+    steps:
+      - name: Create cdo-vertex repository
+        run: |
+          gh api \
+            --method POST \
+            /orgs/$ORG/repos \
+            -f name="$REPO" \
+            -f description="Modular software system for the CDO Vertex dart board device (Raspberry Pi 5)" \
+            -F private=true \
+            -F auto_init=false
+          echo "Repository created: https://github.com/$ORG/$REPO"
+
+      - name: Create files via GitHub Contents API
+        run: |
+          create_file() {
+            local path="$1"
+            local content_b64="$2"
+            local message="$3"
+            gh api \
+              --method PUT \
+              /repos/$ORG/$REPO/contents/$path \
+              -f message="$message" \
+              -f content="$content_b64"
+            echo "Created: $path"
+          }
+
+          # ── README.md ─────────────────────────────────────────────────────
+          create_file "README.md" \
+            "IyBDRE8gVmVydGV4CgpNb2R1bGFyIHNvZnR3YXJlIHN5c3RlbSBmb3IgdGhlIENETyBWZXJ0ZXggZGFydCBib2FyZCBkZXZpY2UgKFJhc3BiZXJyeSBQaSA1KS4KCiMjIE1vZHVsZSBTdHJ1Y3R1cmUKCnwgTW9kdWxlIHwgRGVzY3JpcHRpb24gfAp8LS0tLS0tLS18LS0tLS0tLS0tLS0tLXwKfCBjb3JlL2luaXRpYWxpc2UgfCBSdW5zIG9uY2Ugb24gZmlyc3QgYm9vdCDigJQgVVVJRCBnZW5lcmF0aW9uLCBob3N0bmFtZSwgc3lzdGVtIGNvbmZpZyB8CnwgY29yZS9ib290IHwgUnVucyBvbiBldmVyeSBib290IOKAlCBvcmNoZXN0cmF0ZXMgYWxsIG90aGVyIHNlcnZpY2VzIHwKfCBjb3JlL3NldHVwIHwgT25ib2FyZGluZyDigJQgQkxFIGFuZCBBUCBmYWxsYmFjayBmb3IgV2lGaSBjcmVkZW50aWFsIGNvbGxlY3Rpb24gfAp8IHVwZGF0ZXIgfCBDaGVja3MgR2l0SHViIGZvciBwZXItbW9kdWxlIHVwZGF0ZXMsIG5vdGlmaWVzIGRhc2hib2FyZCB8CnwgZGFzaGJvYXJkIHwgTG9jYWwgd2ViIFVJIGFuZCBkZXZpY2UgY29udHJvbCBjZW50cmUgfAp8IGFwcHMvYnJpZGdlIHwgV2ViU29ja2V0IGJyaWRnZSB0byBhcGkuY2RvLWRhcnRzLmNvbSB8CnwgYXBwcy9hdXRvZGFydHMgfCBBdXRvZGFydHMgaGFyZHdhcmUgaW50ZWdyYXRpb24gfAp8IGFwcHMvY2FtZXJhIHwgQ2FtZXJhIGFwcCB3aXRoIGV4cG9zdXJlIGFuZCBzZXR0aW5ncyBjb250cm9sIHwKfCBzaGFyZWQgfCBTaGFyZWQgY29uZmlnIHNjaGVtYSBhbmQgbG9nZ2luZyB1dGlsaXRpZXMgfAoKIyMgVmVyc2lvbmluZwoKRWFjaCBtb2R1bGUgaXMgdmVyc2lvbmVkIGluZGVwZW5kZW50bHkgdXNpbmcgc2VtYW50aWMgdmVyc2lvbmluZyAoTUFKT1IuTUlOT1IuUEFUQ0gpLgpWZXJzaW9uIGhpc3RvcnkgaXMgdHJhY2tlZCBpbiBlYWNoIG1vZHVsZSdzIENIQU5HRUxPRy5tZC4K" \
+            "chore: add README"
+
+          # ── core/initialise ───────────────────────────────────────────────
+          create_file "core/initialise/version.json" \
+            "ewogICJtb2R1bGUiOiAiaW5pdGlhbGlzZSIsCiAgInZlcnNpb24iOiAiMC4xLjAiLAogICJkZXNjcmlwdGlvbiI6ICJSdW5zIG9uY2Ugb24gZmlyc3QgYm9vdC4gR2VuZXJhdGVzIFVVSUQsIHNldHMgaG9zdG5hbWUsIGVuYWJsZXMgQmx1ZXRvb3RoIGFuZCBXaUZpLCB3cml0ZXMgc2hhcmVkIGNvbmZpZy4iCn0K" \
+            "chore: add core/initialise scaffold"
+          create_file "core/initialise/CHANGELOG.md" \
+            "IyBpbml0aWFsaXNlIOKAlCBDaGFuZ2Vsb2cKCiMjIFswLjEuMF0g4oCUIEluaXRpYWwgc3RydWN0dXJlCi0gTW9kdWxlIHNjYWZmb2xkIGNyZWF0ZWQK" \
+            "chore: add core/initialise scaffold"
+
+          # ── core/boot ─────────────────────────────────────────────────────
+          create_file "core/boot/version.json" \
+            "ewogICJtb2R1bGUiOiAiYm9vdCIsCiAgInZlcnNpb24iOiAiMC4xLjAiLAogICJkZXNjcmlwdGlvbiI6ICJSdW5zIG9uIGV2ZXJ5IGJvb3QuIFJlYWRzIHNoYXJlZCBjb25maWcgYW5kIG9yY2hlc3RyYXRlcyBhbGwgb3RoZXIgc2VydmljZXMuIgp9Cg==" \
+            "chore: add core/boot scaffold"
+          create_file "core/boot/CHANGELOG.md" \
+            "IyBib290IOKAlCBDaGFuZ2Vsb2cKCiMjIFswLjEuMF0g4oCUIEluaXRpYWwgc3RydWN0dXJlCi0gTW9kdWxlIHNjYWZmb2xkIGNyZWF0ZWQK" \
+            "chore: add core/boot scaffold"
+
+          # ── core/setup ────────────────────────────────────────────────────
+          create_file "core/setup/version.json" \
+            "ewogICJtb2R1bGUiOiAic2V0dXAiLAogICJ2ZXJzaW9uIjogIjAuMS4wIiwKICAiZGVzY3JpcHRpb24iOiAiT25ib2FyZGluZyBtb2R1bGUuIEhhbmRsZXMgQkxFIGRpc2NvdmVyeSBhbmQgQVAgZmFsbGJhY2sgZm9yIFdpRmkgY3JlZGVudGlhbCBjb2xsZWN0aW9uLiIKfQo=" \
+            "chore: add core/setup scaffold"
+          create_file "core/setup/CHANGELOG.md" \
+            "IyBzZXR1cCDigJQgQ2hhbmdlbG9nCgojIyBbMC4xLjBdIOKAlCBJbml0aWFsIHN0cnVjdHVyZQotIE1vZHVsZSBzY2FmZm9sZCBjcmVhdGVkCg==" \
+            "chore: add core/setup scaffold"
+
+          # ── updater ───────────────────────────────────────────────────────
+          create_file "updater/version.json" \
+            "ewogICJtb2R1bGUiOiAidXBkYXRlciIsCiAgInZlcnNpb24iOiAiMC4xLjAiLAogICJkZXNjcmlwdGlvbiI6ICJDaGVja3MgR2l0SHViIGZvciBwZXItbW9kdWxlIHVwZGF0ZXMgYW5kIG5vdGlmaWVzIHRoZSBkYXNoYm9hcmQuIEhhbmRsZXMgc2FmZSBtb2R1bGUgdXBkYXRlcyBhbmQgc2VydmljZSByZXN0YXJ0cy4iCn0K" \
+            "chore: add updater scaffold"
+          create_file "updater/CHANGELOG.md" \
+            "IyB1cGRhdGVyIOKAlCBDaGFuZ2Vsb2cKCiMjIFswLjEuMF0g4oCUIEluaXRpYWwgc3RydWN0dXJlCi0gTW9kdWxlIHNjYWZmb2xkIGNyZWF0ZWQK" \
+            "chore: add updater scaffold"
+
+          # ── dashboard ─────────────────────────────────────────────────────
+          create_file "dashboard/version.json" \
+            "ewogICJtb2R1bGUiOiAiZGFzaGJvYXJkIiwKICAidmVyc2lvbiI6ICIwLjEuMCIsCiAgImRlc2NyaXB0aW9uIjogIkxvY2FsIHdlYiBVSSBhbmQgZGV2aWNlIGNvbnRyb2wgY2VudHJlLiBBY2Nlc3NpYmxlIGZyb20gdGhlIENETyBWZXJ0ZXggYXBwLiIKfQo=" \
+            "chore: add dashboard scaffold"
+          create_file "dashboard/CHANGELOG.md" \
+            "IyBkYXNoYm9hcmQg4oCUIENoYW5nZWxvZwoKIyMgWzAuMS4wXSDigJQgSW5pdGlhbCBzdHJ1Y3R1cmUKLSBNb2R1bGUgc2NhZmZvbGQgY3JlYXRlZAo=" \
+            "chore: add dashboard scaffold"
+
+          # ── apps/bridge ───────────────────────────────────────────────────
+          create_file "apps/bridge/version.json" \
+            "ewogICJtb2R1bGUiOiAiYnJpZGdlIiwKICAidmVyc2lvbiI6ICIwLjEuMCIsCiAgImRlc2NyaXB0aW9uIjogIldlYlNvY2tldCBicmlkZ2UgY29ubmVjdGluZyB0aGUgZGV2aWNlIHRvIGFwaS5jZG8tZGFydHMuY29tIGZvciBsaXZlIGRhcnQgc2Vzc2lvbiBkYXRhLiIKfQo=" \
+            "chore: add apps/bridge scaffold"
+          create_file "apps/bridge/CHANGELOG.md" \
+            "IyBicmlkZ2Ug4oCUIENoYW5nZWxvZwoKIyMgWzAuMS4wXSDigJQgSW5pdGlhbCBzdHJ1Y3R1cmUKLSBNb2R1bGUgc2NhZmZvbGQgY3JlYXRlZAo=" \
+            "chore: add apps/bridge scaffold"
+
+          # ── apps/autodarts ────────────────────────────────────────────────
+          create_file "apps/autodarts/version.json" \
+            "ewogICJtb2R1bGUiOiAiYXV0b2RhcnRzIiwKICAidmVyc2lvbiI6ICIwLjEuMCIsCiAgImRlc2NyaXB0aW9uIjogIkF1dG9kYXJ0cyBoYXJkd2FyZSBpbnRlZ3JhdGlvbiBmb3IgZGFydCBkZXRlY3Rpb24gYW5kIHNjb3JlIHByb2Nlc3NpbmcuIgp9Cg==" \
+            "chore: add apps/autodarts scaffold"
+          create_file "apps/autodarts/CHANGELOG.md" \
+            "IyBhdXRvZGFydHMg4oCUIENoYW5nZWxvZwoKIyMgWzAuMS4wXSDigJQgSW5pdGlhbCBzdHJ1Y3R1cmUKLSBNb2R1bGUgc2NhZmZvbGQgY3JlYXRlZAo=" \
+            "chore: add apps/autodarts scaffold"
+
+          # ── apps/camera ───────────────────────────────────────────────────
+          create_file "apps/camera/version.json" \
+            "ewogICJtb2R1bGUiOiAiY2FtZXJhIiwKICAidmVyc2lvbiI6ICIwLjEuMCIsCiAgImRlc2NyaXB0aW9uIjogIkNhbWVyYSBhcHAgd2l0aCBleHBvc3VyZSwgcmVzb2x1dGlvbiBhbmQgc2V0dGluZ3MgY29udHJvbC4iCn0K" \
+            "chore: add apps/camera scaffold"
+          create_file "apps/camera/CHANGELOG.md" \
+            "IyBjYW1lcmEg4oCUIENoYW5nZWxvZwoKIyMgWzAuMS4wXSDigJQgSW5pdGlhbCBzdHJ1Y3R1cmUKLSBNb2R1bGUgc2NhZmZvbGQgY3JlYXRlZAo=" \
+            "chore: add apps/camera scaffold"
+
+          # ── shared ────────────────────────────────────────────────────────
+          create_file "shared/version.json" \
+            "ewogICJtb2R1bGUiOiAic2hhcmVkIiwKICAidmVyc2lvbiI6ICIwLjEuMCIsCiAgImRlc2NyaXB0aW9uIjogIlNoYXJlZCBjb25maWcgc2NoZW1hLCBsb2dnaW5nIHV0aWxpdGllcyBhbmQgY29uc3RhbnRzIHVzZWQgYWNyb3NzIGFsbCBtb2R1bGVzLiIKfQo=" \
+            "chore: add shared scaffold"
+          create_file "shared/CHANGELOG.md" \
+            "IyBzaGFyZWQg4oCUIENoYW5nZWxvZwoKIyMgWzAuMS4wXSDigJQgSW5pdGlhbCBzdHJ1Y3R1cmUKLSBNb2R1bGUgc2NhZmZvbGQgY3JlYXRlZAo=" \
+            "chore: add shared scaffold"
+          create_file "shared/config.schema.json" \
+            "ewogICIkc2NoZW1hIjogImh0dHA6Ly9qc29uLXNjaGVtYS5vcmcvZHJhZnQtMDcvc2NoZW1hIyIsCiAgInRpdGxlIjogIkNETyBWZXJ0ZXggU2hhcmVkIENvbmZpZyIsCiAgInR5cGUiOiAib2JqZWN0IiwKICAicmVxdWlyZWQiOiBbInV1aWQiLCAic2hvcnRfaWQiLCAiaG9zdG5hbWUiLCAiaW5pdGlhbGlzZWQiXSwKICAicHJvcGVydGllcyI6IHsKICAgICJ1dWlkIjogewogICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAiZGVzY3JpcHRpb24iOiAiRnVsbCBVVUlEIGdlbmVyYXRlZCBvbiBmaXJzdCBib290IgogICAgfSwKICAgICJzaG9ydF9pZCI6IHsKICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgImRlc2NyaXB0aW9uIjogIkxhc3QgNiBjaGFyYWN0ZXJzIG9mIFVVSUQgdXNlZCBpbiBob3N0bmFtZSBhbmQgQkxFIGJyb2FkY2FzdCIKICAgIH0sCiAgICAiaG9zdG5hbWUiOiB7CiAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJEZXZpY2UgaG9zdG5hbWUgZS5nLiBjZG8tdmVydGV4LWdodDYxYSIKICAgIH0sCiAgICAiaW5pdGlhbGlzZWQiOiB7CiAgICAgICJ0eXBlIjogImJvb2xlYW4iLAogICAgICAiZGVzY3JpcHRpb24iOiAiVHJ1ZSBhZnRlciBjb3JlL2luaXRpYWxpc2UgaGFzIHJ1biBzdWNjZXNzZnVsbHkuIFByZXZlbnRzIHJlLWluaXRpYWxpc2F0aW9uIG9uIHN1YnNlcXVlbnQgYm9vdHMuIgogICAgfSwKICAgICJ3aWZpX3NzaWQiOiB7CiAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJTYXZlZCBXaUZpIG5ldHdvcmsgbmFtZSIKICAgIH0sCiAgICAid2lmaV9wYXNzd29yZF9lbmNyeXB0ZWQiOiB7CiAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJBRVMgZW5jcnlwdGVkIFdpRmkgcGFzc3dvcmQiCiAgICB9LAogICAgInJlZ2lzdGVyZWRfd2l0aF9hcGkiOiB7CiAgICAgICJ0eXBlIjogImJvb2xlYW4iLAogICAgICAiZGVzY3JpcHRpb24iOiAiVHJ1ZSBhZnRlciBkZXZpY2UgaGFzIHN1Y2Nlc3NmdWxseSByZWdpc3RlcmVkIHdpdGggYXBpLmNkby1kYXJ0cy5jb20iCiAgICB9LAogICAgImNsYWltaW5nX3Rva2VuIjogewogICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAiZGVzY3JpcHRpb24iOiAiU2hvcnQtbGl2ZWQgdG9rZW4gcmV0dXJuZWQgYnkgQVBJIG9uIHJlZ2lzdHJhdGlvbiwgdXNlZCB0byBjbGFpbSB0aGUgZGV2aWNlIGluIHRoZSBhcHAiCiAgICB9LAogICAgImNsYWltaW5nX3Rva2VuX2V4cGlyZXMiOiB7CiAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICJmb3JtYXQiOiAiZGF0ZS10aW1lIiwKICAgICAgImRlc2NyaXB0aW9uIjogIklTTyB0aW1lc3RhbXAgYWZ0ZXIgd2hpY2ggdGhlIGNsYWltaW5nIHRva2VuIGlzIGludmFsaWQiCiAgICB9LAogICAgImFwaV9iYXNlX3VybCI6IHsKICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgImRlc2NyaXB0aW9uIjogIkJhc2UgVVJMIGZvciB0aGUgQ0RPIEFQSSBlLmcuIGh0dHBzOi8vYXBpLmNkby1kYXJ0cy5jb20iCiAgICB9LAogICAgImRhc2hib2FyZF9wb3J0IjogewogICAgICAidHlwZSI6ICJpbnRlZ2VyIiwKICAgICAgImRlc2NyaXB0aW9uIjogIlBvcnQgdGhlIGxvY2FsIGRhc2hib2FyZCBydW5zIG9uLCBkZWZhdWx0IDgwODAiCiAgICB9CiAgfQp9Cg==" \
+            "chore: add shared/config.schema.json"
+
+          echo "All files created successfully."
+          echo "Repository live at: https://github.com/$ORG/$REPO"
