@@ -1,0 +1,5 @@
+{
+  "module": "setup",
+  "version": "0.1.0",
+  "description": "Onboarding module. Handles BLE discovery and AP fallback for WiFi credential collection."
+}

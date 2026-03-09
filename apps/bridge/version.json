@@ -1,0 +1,5 @@
+{
+  "module": "bridge",
+  "version": "0.1.0",
+  "description": "WebSocket bridge connecting the device to api.cdo-darts.com for live dart session data."
+}

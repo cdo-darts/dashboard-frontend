@@ -1,0 +1,5 @@
+{
+  "module": "camera",
+  "version": "0.1.0",
+  "description": "Camera app with exposure, resolution and settings control."
+}

@@ -1,0 +1,5 @@
+{
+  "module": "dashboard",
+  "version": "0.1.0",
+  "description": "Local web UI and device control centre. Accessible from the CDO Vertex app."
+}

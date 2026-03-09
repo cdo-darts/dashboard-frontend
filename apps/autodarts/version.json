@@ -1,0 +1,5 @@
+{
+  "module": "autodarts",
+  "version": "0.1.0",
+  "description": "Autodarts hardware integration for dart detection and score processing."
+}

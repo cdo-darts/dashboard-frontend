@@ -1,0 +1,5 @@
+{
+  "module": "shared",
+  "version": "0.1.0",
+  "description": "Shared config schema, logging utilities and constants used across all modules."
+}
